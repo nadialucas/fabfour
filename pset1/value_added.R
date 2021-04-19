@@ -52,7 +52,7 @@ class_year <- unique(transition_df) %>% # collapse to teacher-year level
 
 model <- lm(class_resid_mean ~ crm_lag1 + crm_lag2 + crm_lag3 + crm_lag4 + crm_lag5 + crm_lag6, class_year, weights = class_size) # ols of A_t on A_j^{-t} ???
 
-model <- lm(class_resid_mean ~ crm_lag2 -1, class_year, weights = class_size) # ols of A_t on A_j^{-t} ???
+model <- lm(class_resid_mean ~ crm_lag -1, class_year, weights = class_size) # ols of A_t on A_j^{-t} ???
 
 
 
