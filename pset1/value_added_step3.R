@@ -51,11 +51,11 @@ for (id in teacher_ids) {
   gamma <- matrix(0, nrow = Njt)
   for (i in 1:Njt) {
     nct = tiny_dataset[i,]$class_size
-    class_size = row$
     gamma[i] = Cov_list[i]
-    for (j in 1:Njt) {
+    for (j in i:Njt) {
       spread = j-i
-      Sigma[i][j] = Cov_list[spread]
+      Sigma[i][j] = Cov_list[spread+1]
+      Sigma[j][i] = Cov_list[spread+1]
       if (i==j) {
         var_adjust = sigma_theta + (sigma_eps/nct)
         Sigma[i][i] ++ var_adjust
