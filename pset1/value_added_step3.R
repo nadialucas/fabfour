@@ -109,6 +109,9 @@ student_teacher <- merge(student_df, teacher_df_wlags, by = c("id_teacher", "yea
 # renormalize the tvs to the same distribution as individual scores for the regression
 tv_mean <- mean(teacher_df_wlags$tv, na.rm = TRUE)
 tv_sd <- sd(teacher_df_wlags$tv, na.rm=TRUE)
+
+# densit histogram
+plot(density(tv-tv_mean, bw=.01), main = "Density of tv estimates")
 score_sd <- sd(student_teacher$res, na.rm=TRUE)
 student_teacher <- student_teacher %>%
   mutate(tv_normed = (tv - tv_mean) * (score_sd/tv_sd))
@@ -125,7 +128,8 @@ teacher_df_nodrift <- teacher_df_wlags %>%
 # try one with no drift
 teacher_df_nodrift <- teacher_df_nodrift %>%
   group_by(id_teacher) %>%
-  mutate(A_mean = mean(class_mean, na.rm = TRUE)) %>%
+  rowwise %>%
+  mutate(A_mean =sum(res_lag1,res_lag2,res_lag3,res_lag4,res_lag5,res_lag6, na.rm=TRUE)/(year-2000)) %>%
   ungroup()
 
 model2 = lm(class_mean ~ A_mean, data = teacher_df_nodrift )
@@ -135,9 +139,10 @@ teacher_df_nodrift$tv_nodrift = tv_nodrift
 # merge back in with student level
 student_teacher_nodrift <- merge(student_df, teacher_df_nodrift, by = c("id_teacher", "year"), all.x = T)
 
-tvnodrift_mean <- mean(teacher_df_nodrift$tv, na.rm = TRUE)
-tvnodrift_sd <- sd(teacher_df_nodrift$tv, na.rm=TRUE)
+tvnodrift_mean <- mean(teacher_df_nodrift$tv_nodrift, na.rm = TRUE)
+tvnodrift_sd <- sd(teacher_df_nodrift$tv_nodrift, na.rm=TRUE)
 score_sd <- sd(student_teacher_nodrift$res, na.rm=TRUE)
+plot(density(tv_nodrift-tvnodrift_mean, bw=.01), main = "Density of tv estimates no drift")
 
 # renormalize the tvs to the same distribution as individual scores for the regression
 student_teacher_nodrift <- student_teacher_nodrift %>%
