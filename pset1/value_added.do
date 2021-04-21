@@ -1,6 +1,14 @@
+********************************************************************************
+* title:    value_added_step3.R
+* updated:  4/20/21
+* Nadia Lucas, Sid Sah, Fern Ramoutar, and George Vojta
+* We would like to thank Tanya Rajan for helpful comments
+********************************************************************************
+
 clear all
 set more off
 
+* change for your own directory
 global workingdir "/Users/nadialucas/Documents/fabfour/pset1"
 import delimited using "$workingdir/va-data.csv"
 
@@ -32,12 +40,12 @@ egen class_size = count(class_id), by(class_id)
 
 ren id_grade grade
 
-
-
-reghdfe score_std c.lag_score_std#i.grade c.lag_scores_2#i.grade c.lag_scores_3#i.grade ///
+* regression that accounts for all the covariates
+reghdfe score_std lag_score_std lag_scores_2 lag_scores_3 ///
+c.lag_score_std#i.grade c.lag_scores_2#i.grade c.lag_scores_3#i.grade ///
 c.class_lag_mean#i.grade c.class_lag_mean2#i.grade c.class_lag_mean3#i.grade ///
 c.school_grade_lag_mean#i.grade c.school_grade_lag_mean2#i.grade c.school_grade_lag_mean3#i.grade ///
-class_hh class_m_edu school_hh school_m_edu i.grade i.year class_size, absorb(teacher_fes = i.id_teacher) resid(residual)
+class_hh class_m_edu school_hh school_m_edu i.grade i.year class_size, absorb(teacher_fes = i.id_teacher) resid(residual) nocons
 
 gen res = residual + teacher_fes
 
@@ -52,7 +60,8 @@ egen classes = group(class_id)
 sum classes
 local C = r(max)
 
-local K = 16
+* counted all the covariates
+local K = 57
 
 
 * generate sigmas
@@ -68,10 +77,11 @@ global sigma_epsilon = r(Var) * (`N' - 1)/(`N' - `K' - `C' + 1)
 
 global sigma_theta = ${sigma_A} - ${sigma_epsilon}
 
+export delimited using "$workingdir/va-data-updated3.csv", replace
 
 * do the time-series
 
-collapse (mean) class_hh class_m_edu year class_lag_mean class_size grade school_hh school_m_edu class_mean id_teacher, by(class_id)
+collapse (mean) class_hh class_m_edu class_lag_mean class_size grade school_hh school_m_edu class_mean id_teacher, by(class_id year)
 
 tsset id_teacher year
 sort id_teacher year
@@ -97,30 +107,25 @@ matrix variances[1,1] = $sigma_A
 matrix variances[2,1] = $sigma_epsilon
 matrix variances[3,1] = $sigma_theta
 
-corr class_mean res_lag1 [aw=weight1]
-global cov1 = r(rho)
-matrix variances[4,1] = $cov1
-corr class_mean res_lag2 [aw=weight2]
-global cov2 = r(rho)
-matrix variances[5,1] = $cov2
-corr class_mean res_lag3 [aw=weight3]
-global cov3 = r(rho)
-matrix variances[6,1] = $cov3
-corr class_mean res_lag4 [aw=weight4]
-global cov4 = r(rho)
-matrix variances[7,1] = $cov4
-corr class_mean res_lag5 [aw=weight5]
-global cov5 = r(rho)
-matrix variances[8,1] = $cov5
-corr class_mean res_lag6 [aw=weight6]
-global cov6 = r(rho)
-matrix variances[9,1] = $cov6
+corr class_mean res_lag1 [aw=weight1], cov
+matrix variances[4,1] = r(cov_12)
+corr class_mean res_lag2 [aw=weight2], cov
+matrix variances[5,1] = r(cov_12)
+corr class_mean res_lag3 [aw=weight3], cov
+matrix variances[6,1] = r(cov_12)
+corr class_mean res_lag4 [aw=weight4], cov
+matrix variances[7,1] = r(cov_12)
+corr class_mean res_lag5 [aw=weight5], cov
+matrix variances[8,1] = r(cov_12)
+corr class_mean res_lag6 [aw=weight6], cov
+matrix variances[9,1] = r(cov_12)
 
 matrix list variances
 
 export delimited using "$workingdir/va-class-level.csv", replace
 
-mat2txt, matrix(variances) saving("$workingdir/var-matrix.csv"), replace
+* we use this to read into R for step 3
+mat2txt, matrix(variances) saving("$workingdir/var-matrix.csv") replace
 
 
 
